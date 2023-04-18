@@ -94,21 +94,23 @@ print("sl19scaled.csv exported!")
 # RUN & VISUALIZE PCA
 sl19scaled = pd.read_csv(wd + "/exports/sl19scaled.csv")
 df = sl19scaled
+z = "hv270"
+labels = df[z]
+df = df.drop([z], axis=1)
 
 # reduce down to 2 principal components
 pca = PCA(n_components=2)
-principalComponents = pca.fit_transform(sl19scaled)
-principalDf = pd.DataFrame(data = principalComponents, columns = ['pc1', 'pc2'])
-z = "hv270" # wealth index combined for urban
-finalDf = pd.concat([principalDf, sl19[[z]]], axis = 1)
+principal_components = pca.fit_transform(df)
+df_pca = pd.DataFrame(data = principal_components, columns = ['pc1', 'pc2'])
+df_final = pd.concat([df_pca, labels], axis = 1)
 
 # plot the principal components with another variable for color
 sns.set(rc={'figure.figsize':(8,10)})
-sns.relplot(data=finalDf, x="pc1", y="pc2", hue=z, size=0.5).set(title="2 Principal Components of Numerical Data by Wealth Index")
+sns.relplot(data=df_final, x="pc1", y="pc2", hue=z, size=0.5).set(title="2 Principal Components of Numerical Data by Wealth Index")
 
 #%% -----------------------------------------------------------------
 # SPLIT TRAIN AND TEST DATA
-sl19svm = pd.read_csv(wd + "/exports/sl19scaled.csv")
+sl19scaled = pd.read_csv(wd + "/exports/sl19scaled.csv")
 df = sl19scaled
 
 # split
@@ -123,8 +125,8 @@ df_train_nolabels = df_train.drop(["hv270"], axis=1)
 #%% -----------------------------------------------------------------
 ## LINEAR KERNEL
 # fit SVM model
-c1 = 1
-svm_model1=LinearSVC(C=c1, max_iter=1000)
+c1 = 1000
+svm_model1=LinearSVC(C=c1, max_iter=100000)
 svm_model1.fit(df_train_nolabels, labels_train)
 
 # predict test data
@@ -144,12 +146,12 @@ ax1.set_title("Confusion Matrix for Linear Kernel, C="+str(c1))
 ax1.text(2,6, "Accuracy: "+str(round(accuracy_1*100, 1))+"%")
 #%% -----------------------------------------------------------------
 ## RBF KERNEL
-c2 = 1
-svm_model2=SVC(C=c2, kernel='rbf', degree=3, gamma="auto")
+c2 = 10
+svm_model2=SVC(C=c2, kernel='rbf', degree=3, gamma="auto", max_iter=100000)
 svm_model2.fit(df_train_nolabels, labels_train)
 
 # predict test data
-pred_test_2 = svm_model1.predict(df_test_nolabels)
+pred_test_2 = svm_model2.predict(df_test_nolabels)
 
 # evaluate predictions
 cf_matrix_2 = confusion_matrix(labels_test, pred_test_2)
@@ -164,14 +166,16 @@ ax2.set_ylabel("Actual Classes")
 ax2.set_title("Confusion Matrix for RBF Kernel, C="+str(c2))
 ax2.text(2,6, "Accuracy: "+str(round(accuracy_2*100, 1))+"%")
 
+# %%
+
 #%% -----------------------------------------------------------------
 ## POLYNOMIAL KERNEL
 c3 = 1
-svm_model3=SVC(C=c3, kernel='poly', degree=2, gamma="auto")
+svm_model3=SVC(C=c3, kernel='poly', degree=3, gamma="auto", max_iter=10000)
 svm_model3.fit(df_train_nolabels, labels_train)
 
 # predict test data
-pred_test_3 = svm_model1.predict(df_test_nolabels)
+pred_test_3 = svm_model3.predict(df_test_nolabels)
 
 # evaluate predictions
 cf_matrix_3 = confusion_matrix(labels_test, pred_test_3)
@@ -183,5 +187,6 @@ print(accuracy_3)
 ax3 = sns.heatmap(cf_matrix_3/np.sum(cf_matrix_3), annot=True, fmt='.1%')
 ax3.set_xlabel("Predicted Classes")
 ax3.set_ylabel("Actual Classes")
-ax3.set_title("Confusion Matrix for Polynomial Kernel, C="+str(c3))
+ax3.set_title("Confusion Matrix for Polynomial Kernel 3rd Deg, C="+str(c3))
 ax3.text(2,6, "Accuracy: "+str(round(accuracy_3*100, 1))+"%")
+# %%
