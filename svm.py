@@ -131,7 +131,7 @@ df_train_nolabels = df_train.drop(["hv270"], axis=1)
 # LINEAR KERNEL
 # fit SVM model
 c1 = 1
-svm_model1 = LinearSVC(C=c1, max_iter=1000)
+svm_model1 = LinearSVC(C=c1, max_iter=100)
 svm_model1.fit(df_train_nolabels, labels_train)
 
 # predict test data
@@ -195,3 +195,14 @@ ax3.set_ylabel("Actual Classes")
 ax3.set_title("Confusion Matrix for Polynomial Kernel 3rd Deg, C="+str(c3))
 ax3.text(2, 6, "Accuracy: "+str(round(accuracy_3*100, 1))+"%")
 # %%
+results = [
+    [0.553, 0.553, 0.553, 0.554],
+    [0.560, 0.563, 0.546, 0.522],
+    [0.565, 0.566, 0.561, 0.554],
+]
+ax4 = sns.heatmap(results, annot=True, fmt='.1%',
+                  xticklabels=[1, 10, 100, 1000],
+                  yticklabels=['Linear', 'RBF', 'Polynomial'])
+ax4.set_xlabel("Costs")
+ax4.set_ylabel("Kernels")
+ax4.set_title("Accuracy of Various SVM Kernels at Various Costs")
