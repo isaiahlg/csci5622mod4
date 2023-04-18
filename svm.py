@@ -125,7 +125,7 @@ df_train_nolabels = df_train.drop(["hv270"], axis=1)
 #%% -----------------------------------------------------------------
 ## LINEAR KERNEL
 # fit SVM model
-c1 = 1000
+c1 = 1
 svm_model1=LinearSVC(C=c1, max_iter=100000)
 svm_model1.fit(df_train_nolabels, labels_train)
 
@@ -146,7 +146,7 @@ ax1.set_title("Confusion Matrix for Linear Kernel, C="+str(c1))
 ax1.text(2,6, "Accuracy: "+str(round(accuracy_1*100, 1))+"%")
 #%% -----------------------------------------------------------------
 ## RBF KERNEL
-c2 = 10
+c2 = 1000
 svm_model2=SVC(C=c2, kernel='rbf', degree=3, gamma="auto", max_iter=100000)
 svm_model2.fit(df_train_nolabels, labels_train)
 
@@ -165,8 +165,6 @@ ax2.set_xlabel("Predicted Classes")
 ax2.set_ylabel("Actual Classes")
 ax2.set_title("Confusion Matrix for RBF Kernel, C="+str(c2))
 ax2.text(2,6, "Accuracy: "+str(round(accuracy_2*100, 1))+"%")
-
-# %%
 
 #%% -----------------------------------------------------------------
 ## POLYNOMIAL KERNEL
