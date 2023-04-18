@@ -1,4 +1,5 @@
 #%% -----------------------------------------------------------------
+# IMPORT NECESSARY LIBRARIES 
 import pandas as pd
 import numpy as np
 import matplotlib as plt
@@ -17,12 +18,6 @@ wd = os.getcwd()
 
 #%% -----------------------------------------------------------------
 # READ IN SURVEY DATA
-# for surface
-# sl19 = pd.read_stata("~/Documents/code/csci5622/csci5622mod4/proj/data/SLHR7ADT/SLHR7AFL.DTA")
-# for PC
-# sl19 = pd.read_stata("C:/Users/ilyon/OneDrive - UCB-O365/Documents/code/csci5622/mod4/proj/data/SLHR7ADT/SLHR7AFL.DTA")
-
-# generalized
 sl19 = pd.read_stata(wd + "/data/SLHR7ADT/SLHR7AFL.DTA")
 
 #%% -----------------------------------------------------------------
@@ -30,46 +25,77 @@ sl19 = pd.read_stata(wd + "/data/SLHR7ADT/SLHR7AFL.DTA")
 # keep just columns of interest and rexport
 cols2keep = ["hv000","hv001","hv006","hv007","hv010","hv011","hv012","hv013","hv014","hv024","hv025","hv040","hv045c","hv201","hv204","hv205","hv206","hv207","hv208","hv209","hv210","hv211","hv212","hv213","hv214","hv215","hv216","hv217","hv219","hv220","hv221","hv226","hv227","hv230a","hv237","hv241","hv243a","hv243b","hv243c","hv243d","hv243e","hv244","hv245","hv246","hv246a","hv246b","hv246c","hv246d","hv246e","hv246f","hv247","hv270","hv271","hv270a","hv271a","hml1"]
 sl19keep = sl19[cols2keep]
-
 # export csv
-sl19keep.to_csv(wd + "/data/sl19keep.csv", index=False)
+sl19keep.to_csv(wd + "/exports/sl19keep.csv", index=False)
+print("sl19keep.csv exported!")
+#%% -----------------------------------------------------------------
+# ENCODE CATEGORICAL VARIABLES
+sl19keep = pd.read_csv(wd + "/exports/sl19keep.csv")
+df = sl19keep
+
+df = df.replace("yes", 1)
+df = df.replace("no", 0)
+df = df.replace("none", 0)
+df = df.replace("unknown", 0)
+df = df.replace("urban", 1)
+df = df.replace("rural", 0)
+# df = df.replace("95 or more", 95)
+
+cols2convert = [
+    "hv243a",
+    "hv244",
+    "hv209",
+    "hv208",
+    "hv243b",
+    "hv206",
+    "hv207"
+]
+
+for c in cols2convert:
+    df[c] = pd.to_numeric(df[c])
 
 # keep just numeric variables of interest
-intCols = ["hv010","hv011","hv012","hv014","hv216","hv270"]
-sl19num = sl19[intCols]
-sl19num["hv270"]=pd.factorize(sl19num["hv270"])[0]
+intCols = ["hv270","hv010","hv011","hv012","hv014","hv216"]
+allCols = np.concatenate((intCols, cols2convert))
+print(allCols)
+df = df[allCols]
+df["hv270"]=pd.factorize(df["hv270"])[0]
 
 # export csv
-sl19num.to_csv(wd + "/data/sl19svm.csv", index=False)
-print("Exported!")
+sl19svm = df
+sl19svm.to_csv(wd + "/exports/sl19svm.csv", index=False)
+print("sl19svm.csv exported!")
+
 #%% ------------------------------------------------------------------
-# read in data to prepare for cleaning
-df = pd.read_csv(wd + "/data/sl19svm.csv")
-df.describe()
+# SCALE DATASET FOR PCA
+sl19svm = pd.read_csv(wd + "/exports/sl19svm.csv")
+df = sl19svm
 
-#%% -----------------------------------------------------------------
-# convert categorical
-# df.loc[df["hv245"] == "don't know", "hv245"] = 10
-# df.loc[df["hv245"] == "unknown", "hv245"] = 10
-# df.loc[df["hv245"] == "95 or over", "hv245"] = 950
-# df["hv245"]=pd.factorize(df["hv245"])[0]
-# df.loc[df["hv245"] == -1, "hv245"] = 10
+# remove label
+labels = df["hv270"]
+df = df.drop(["hv270"], axis=1)
 
-#%% -----------------------------------------------------------------
 # scale data with mean = 0, stddev = 1
 scaler = StandardScaler()
-sl19scaled = scaler.fit_transform(df)
+arr = scaler.fit_transform(df)
 
 # record mean, variance in order to scale back
 means = scaler.mean_
 stddevs = scaler.scale_
 
 # export csv
-sl19scaledDf = pd.DataFrame(sl19scaled)
-sl19scaledDf.to_csv(wd + "/data/sl19scaled.csv")
+df = pd.DataFrame(arr)
+df["hv270"] = labels
+sl19scaled = df
+sl19scaled.to_csv(wd + "/exports/sl19scaled.csv", index=False)
+print("sl19scaled.csv exported!")
 
 #%% -----------------------------------------------------------------
-# reduce columns down to 2 for clustering
+# RUN & VISUALIZE PCA
+sl19scaled = pd.read_csv(wd + "/exports/sl19scaled.csv")
+df = sl19scaled
+
+# reduce down to 2 principal components
 pca = PCA(n_components=2)
 principalComponents = pca.fit_transform(sl19scaled)
 principalDf = pd.DataFrame(data = principalComponents, columns = ['pc1', 'pc2'])
@@ -81,7 +107,11 @@ sns.set(rc={'figure.figsize':(8,10)})
 sns.relplot(data=finalDf, x="pc1", y="pc2", hue=z, size=0.5).set(title="2 Principal Components of Numerical Data by Wealth Index")
 
 #%% -----------------------------------------------------------------
-# split test and train data
+# SPLIT TRAIN AND TEST DATA
+sl19svm = pd.read_csv(wd + "/exports/sl19scaled.csv")
+df = sl19scaled
+
+# split
 df_train, df_test = train_test_split(df, test_size=0.2)
 
 # remove labels
@@ -94,7 +124,7 @@ df_train_nolabels = df_train.drop(["hv270"], axis=1)
 ## LINEAR KERNEL
 # fit SVM model
 c1 = 1
-svm_model1=LinearSVC(C=c1)
+svm_model1=LinearSVC(C=c1, max_iter=1000)
 svm_model1.fit(df_train_nolabels, labels_train)
 
 # predict test data
@@ -114,7 +144,7 @@ ax1.set_title("Confusion Matrix for Linear Kernel, C="+str(c1))
 ax1.text(2,6, "Accuracy: "+str(round(accuracy_1*100, 1))+"%")
 #%% -----------------------------------------------------------------
 ## RBF KERNEL
-c2 = 100
+c2 = 1
 svm_model2=SVC(C=c2, kernel='rbf', degree=3, gamma="auto")
 svm_model2.fit(df_train_nolabels, labels_train)
 
@@ -136,7 +166,7 @@ ax2.text(2,6, "Accuracy: "+str(round(accuracy_2*100, 1))+"%")
 
 #%% -----------------------------------------------------------------
 ## POLYNOMIAL KERNEL
-c3 = 100 
+c3 = 1
 svm_model3=SVC(C=c3, kernel='poly', degree=2, gamma="auto")
 svm_model3.fit(df_train_nolabels, labels_train)
 
